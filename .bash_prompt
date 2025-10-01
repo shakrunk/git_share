@@ -1,0 +1,91 @@
+# ==================================================================
+# Professional Tokyonight Theme for Bash Prompt
+# ==================================================================
+
+# Function to parse git branch name and dirty status
+# Shows: (branch_name)
+# Or:    (branch_name *) if there are uncommitted changes
+# Returns empty string if not in a git repo.
+function parse_git_branch() {
+  local branch
+  # Check if we are in a git repo
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # Get the short branch name
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null) || branch="(unnamed)"
+    
+    # Check for uncommitted changes
+    if ! git diff --quiet --ignore-submodules HEAD &>/dev/null; then
+      # Add an asterisk if the working tree is dirty
+      branch+=" *"
+    fi
+    echo "[$branch]"
+  else
+    return
+  fi
+}
+
+# This function is executed before each prompt is displayed
+function set_tokyonight_prompt() {
+  local LAST_EXIT_CODE=$? # Must be the first line!
+
+  # ---------------------------------
+  # Tokyonight Color Palette (24-bit True Color)
+  # ---------------------------------
+  # These require a modern terminal that supports true color.
+  # If colors don't show, your terminal may not support it.
+  local TN_BLACK='\e[38;2;25;27;38m'
+  local TN_BLUE='\e[38;2;122;162;247m'
+  local TN_CYAN='\e[38;2;125;207;255m'
+  local TN_GREEN='\e[38;2;158;206;106m'
+  local TN_MAGENTA='\e[38;2;187;154;247m'
+  local TN_RED='\e[38;2;247;118;142m'
+  local TN_YELLOW='\e[38;2;224;175;104m'
+  local TN_DIM='\e[38;2;86;95;137m'  # For separators and dim text
+  local TN_RESET='\e[0m'             # Reset all attributes
+
+  # ---------------------------------
+  # Prompt Structure Components
+  # ---------------------------------
+
+  # 1. Exit Status Indicator
+  local exit_status_indicator
+  if [ $LAST_EXIT_CODE -eq 0 ]; then
+    exit_status_indicator="${TN_GREEN}✔"
+  else
+    exit_status_indicator="${TN_RED}✖ ${LAST_EXIT_CODE}"
+  fi
+  
+  # 2. User and Host information
+  # Format: [user@hostname]
+  local user_host="${TN_DIM}[${TN_MAGENTA}\u${TN_DIM}@${TN_CYAN}\h${TN_DIM}]"
+  
+  # 3. Current Directory
+  # Format: [/path/to/dir]
+  local current_dir="${TN_DIM}[${TN_BLUE}\w${TN_DIM}]"
+  
+  # 4. Git Information (calls the function)
+  local git_info=$(parse_git_branch)
+  if [ -n "$git_info" ]; then
+    # If in a git repo, color it yellow and add the status
+    git_info="${TN_DIM}─ ${TN_YELLOW}${git_info} ${exit_status_indicator}${TN_DIM}"
+  else
+    # If not in a git repo, just show the status
+    git_info="${TN_DIM}─ [${exit_status_indicator}${TN_DIM}]"
+  fi
+  
+  # 5. Prompt Symbol
+  local prompt_symbol="\$"
+
+  # ---------------------------------
+  # Assembling the PS1 Prompt
+  # ---------------------------------
+  # Using custom symbols for a cleaner look. You can replace '╭', '─', and '╰'
+  # with simpler characters like '[', '-', and '[' if they don't render correctly.
+  # PS1="\n" # Start with a newline for spacing
+  PS1="${TN_DIM}╭─${user_host} ─ ${current_dir} ${git_info}"
+  PS1+="\n"
+  PS1+="${TN_DIM}╰─${TN_RESET}${prompt_symbol} "
+}
+
+# Tell bash to execute the `set_tokyonight_prompt` function before displaying each prompt
+PROMPT_COMMAND="set_tokyonight_prompt"
