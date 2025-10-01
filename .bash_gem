@@ -1,0 +1,66 @@
+# ~/.bash_aliases
+#
+# To use, add this to your ~/.bashrc:
+# if [ -f ~/.bash_aliases ]; then
+#     . ~/.bash_aliases
+# fi
+
+# -----------------------------------------------------------------------------
+# -- CONFIGURATION & MAINTENANCE
+# -----------------------------------------------------------------------------
+alias edital='nvim ~/.bash_aliases && source ~/.bashrc'
+alias editpr='nvim ~/.bash_prompt'
+alias editrc='nvim ~/.bashrc'
+alias editcon="nvim \"${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf\""
+alias up='sudo pacman -Syu'
+
+# -----------------------------------------------------------------------------
+# -- SAFETY & CONFIRMATION
+# -----------------------------------------------------------------------------
+# Prevent accidental overwrites
+alias cp='cp -i'
+alias mv='mv -i'
+alias rm='rm -i'
+
+# -----------------------------------------------------------------------------
+# -- LISTING COMMANDS (ls or eza)
+# -----------------------------------------------------------------------------
+# Standard ls aliases
+alias ls='ls --color=auto --group-directories-first'
+alias la='ls -A'
+alias ll='ls -lh'
+alias l='ls -CF'
+alias lu='ls -laGhF --group-directories-first --color=auto --time=ctime'
+
+# OPTIONAL: Aliases for 'eza' (a modern replacement for ls).
+# Install with 'sudo pacman -S eza'. Then uncomment these lines.
+# alias ls='eza --icons'
+# alias ll='eza -lgh --icons'
+# alias la='eza -lagh --icons'
+# alias lt='eza -T --icons'
+
+# -----------------------------------------------------------------------------
+# -- DIRECTORY NAVIGATION
+# -----------------------------------------------------------------------------
+# NOTE: For going up multiple directories, a function is better.
+# Place the ..() function from the guide into your ~/.bashrc.
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias bd='cd -' # Go back to the previous directory
+
+# -----------------------------------------------------------------------------
+# -- SYSTEM & NETWORKING
+# -----------------------------------------------------------------------------
+alias df='df -h'
+alias free='free -h'
+alias myip='curl -s ifconfig.me'
+alias ping='ping -c 5' # Ping with a count of 5 to prevent infinite pings
+
+# -----------------------------------------------------------------------------
+# -- JUST FOR FUN & FIXES
+# -----------------------------------------------------------------------------
+alias please='sudo'
+alias dog='cat'
+alias edit='nvim'
+alias cls='clear'
