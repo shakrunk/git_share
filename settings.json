@@ -1,0 +1,133 @@
+{
+  "$help": "https://aka.ms/terminal-documentation",
+  "$schema": "https://aka.ms/terminal-profiles-schema-preview",
+  "actions": [],
+  "alwaysShowNotificationIcon": true,
+  "compatibility.allowHeadless": true,
+  "copyFormatting": "none",
+  "copyOnSelect": true,
+  "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+  "initialCols": 146,
+  "initialRows": 46,
+  "keybindings": [
+    {
+      "id": "Terminal.CopyToClipboard",
+      "keys": "ctrl+c"
+    },
+    {
+      "id": "Terminal.FindText",
+      "keys": "ctrl+shift+f"
+    },
+    {
+      "id": "Terminal.PasteFromClipboard",
+      "keys": "ctrl+v"
+    },
+    {
+      "id": "Terminal.DuplicatePaneAuto",
+      "keys": "alt+shift+d"
+    }
+  ],
+  "minimizeToNotificationArea": false,
+  "newTabMenu": [
+    {
+      "type": "remainingProfiles"
+    }
+  ],
+  "profiles": {
+    "defaults": {
+      "colorScheme": {
+        "dark": "One Half Dark (modded)",
+        "light": "One Half Light (modded)"
+      }
+    },
+    "list": [
+      {
+        "closeOnExit": "always",
+        "font": {
+          "face": "CaskaydiaCove Nerd Font"
+        },
+        "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+        "hidden": false,
+        "name": "PowerShell",
+        "opacity": 80,
+        "rightClickContextMenu": true,
+        "source": "Windows.Terminal.PowershellCore",
+        "useAcrylic": true
+      },
+      {
+        "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+        "hidden": false,
+        "name": "Windows PowerShell"
+      },
+      {
+        "commandline": "%SystemRoot%\\System32\\cmd.exe",
+        "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+        "hidden": false,
+        "name": "Command Prompt"
+      },
+      {
+        "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+        "hidden": true,
+        "name": "Azure Cloud Shell",
+        "source": "Windows.Terminal.Azure"
+      },
+      {
+        "guid": "{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+        "hidden": false,
+        "name": "Git Bash",
+        "source": "Git"
+      }
+    ]
+  },
+  "theme": "system",
+  "schemes": [
+    {
+      "name": "One Half Dark (modded)",
+      "cursorColor": "#61AFEF",
+      "selectionBackground": "#5A6374",
+      "background": "#282C34",
+      "foreground": "#DCDFE4",
+      "black": "#282C34",
+      "brightBlack": "#5A6374",
+      "red": "#E06C75",
+      "brightRed": "#E06C75",
+      "green": "#98C379",
+      "brightGreen": "#98C379",
+      "yellow": "#E5C07B",
+      "brightYellow": "#E5C07B",
+      "blue": "#61AFEF",
+      "brightBlue": "#61AFEF",
+      "purple": "#C678DD",
+      "brightPurple": "#C678DD",
+      "cyan": "#56B6C2",
+      "brightCyan": "#56B6C2",
+      "white": "#DCDFE4",
+      "brightWhite": "#FFFFFF"
+    },
+    {
+      "name": "One Half Light (modded)",
+      "background": "#FAFAFA",
+      "foreground": "#383A42",
+      "selectionBackground": "#A0A1A7",
+      "cursorColor": "#4078F2",
+      "black": "#383A42",
+      "brightBlack": "#A0A1A7",
+      "red": "#E45649",
+      "brightRed": "#E45649",
+      "green": "#50A14F",
+      "brightGreen": "#50A14F",
+      "yellow": "#C18401",
+      "brightYellow": "#C18401",
+      "blue": "#4078F2",
+      "brightBlue": "#4078F2",
+      "purple": "#A626A4",
+      "brightPurple": "#A626A4",
+      "cyan": "#0184BC",
+      "brightCyan": "#0184BC",
+      "white": "#FAFAFA",
+      "brightWhite": "#FFFFFF"
+    }
+  ],
+  "useAcrylicInTabRow": true
+}
