@@ -1,4 +1,4 @@
-# --------------------------------------------------------------------------- #
+﻿# --------------------------------------------------------------------------- #
 #                              SYSTEM COMMANDS                                #
 # --------------------------------------------------------------------------- #
 
@@ -12,7 +12,7 @@ function edital { nvim $profile; . $profile }
 Set-Alias -Name edit -Value nvim
 
 # Setup my workspace
-function start {
+function start-work {
     outlook; # Start outlook
     teams;   # Start teams
     zen;     # Open the browser
