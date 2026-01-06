@@ -17,7 +17,7 @@ Set-Alias -Name edit -Value nvim
 # Setup my workspace
 function start-work {
     start olk;     # Start outlook
-    start teams;   # Start teams
+    start ms-teams;   # Start teams
     start zen;     # Open the browser
     cd iip;        # Navigate to the iip repo
     zed .;         # Open the repo in zed
