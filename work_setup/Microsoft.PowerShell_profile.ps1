@@ -8,16 +8,19 @@
 # Edit this file (using my command for "edit aliases" in my linux setup)
 function edital { nvim $profile; . $profile }
 
+# Edit this function and update it in the share file
+function wedital { cd work_setup; edital; cp $profile .; cd ..; add; git log }
+
 # Semantically accurate commands
 Set-Alias -Name edit -Value nvim
 
 # Setup my workspace
 function start-work {
-    outlook; # Start outlook
-    teams;   # Start teams
-    zen;     # Open the browser
-    cd iip;  # Navigate to the iip repo
-    zed .;   # Open the repo in zed
+    start olk;     # Start outlook
+    start teams;   # Start teams
+    start zen;     # Open the browser
+    cd iip;        # Navigate to the iip repo
+    zed .;         # Open the repo in zed
 }
 
 
