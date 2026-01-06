@@ -9,18 +9,45 @@
 function edital { nvim $profile; . $profile }
 
 # Edit this function and update it in the share file
-function wedital { cd work_setup; edital; cp $profile .; cd ..; add; git log }
+function wedital { 
+  Push-Location work_setup # Store current location to return to later
+  Write-Host "Syncing with remote..." -ForegroundColor Cyan; fetch; pull # Sync
+  edital; Copy-Item $profile -Destination . -Force # Edit profile, copy to work share repo
+  if ($(git status --porcelain)) { # Check if there are actual changes to commit
+    $lastMsg = git log -1 --pretty=format:"%s" # Get last commit (subject line)
+
+    # Regex match for 'shr' followed by digits
+    if ($lastMsg -match 'shr(\d+)') {
+      $prevNum = [int]$matches[1]
+      $nextNum = $prevNum + 1
+    } else {
+      $nextNum = 1 # Fallback if the pattern breaks
+    }
+
+    # Format strings to ensure 2 digits (e.g. 5 becomes 05)
+    $newMsg = "shr{0:D2}" -f $nextNum
+
+    add; commit -m $newMsg # Stage, Commit, and Push
+    Write-Host "Success: Profile updated and pushed ($newMsg)" -ForegroundColor Green
+  } else { Write-Host "No changes detected. Nothing to commit." -ForegroundColor Yellow }
+  Pop-Location 
+}
 
 # Semantically accurate commands
 Set-Alias -Name edit -Value nvim
 
 # Setup my workspace
 function start-work {
-    start olk;     # Start outlook
-    start ms-teams;   # Start teams
-    start zen;     # Open the browser
-    cd iip;        # Navigate to the iip repo
-    zed .;         # Open the repo in zed
+  # Navigate to the iip repo
+  cd iip
+
+  # Setup `Comms`
+  Start-AppOnDesktop -DesktopName "Comms" -App "olk" # Outlook
+  Start-AppOnDesktop -DesktopName "Comms" -App "ms-teams" # Teams
+
+  # Setup `Main Work`
+  Start-AppOnDesktop -DesktopName "MainWork" -App "zen" # Browser
+  Start-AppOnDesktop -DesktopName "MainWork" -App "zed" -Args "." # Editor
 }
 
 
@@ -50,8 +77,10 @@ function dev { git switch develop }
 function back { git switch develop-backend }           # RMLEB-IIP: Switch to the backend development branch
 function cpr { git switch develop-cpr-dash }           # RMLEB-IIP: Switch to the cpr-dashboard development branch
 function drc { git switch develop-drc-dash }           # RMLEB-IIP: Switch to the drc-dashboard development branch
+
 function landing { git switch develop-landing }        # RMLEB-IIP: Switch to the landing page development branch
 function land { git switch develop-landing }           # RMLEB-IIP: Switch to the landing page development branch
+
 function packages { git switch develop-packages }      # RMLEB-IIP: Switch to the package development branch
 function pack { git switch develop-packages }          # RMLEB-IIP: Switch to the package development branch
 function api { git switch develop-packages }           # RMLEB-IIP: Switch to the package development branch
@@ -242,6 +271,49 @@ Provide ONLY the HTML code block.
   Write-Host "✅ Enhanced RMLEB report prompt (V3 - Web & Print Optimized) copied!" -ForegroundColor Green
 }
 
+
+# Helper function to Launch -> Wait -> Move
+function Start-AppOnDesktop {
+  param (
+    [string]$App,
+    [string]$Args = $null,
+    [string]$DesktopName
+  )
+
+  if (Get-Module -ListAvailable -Name PSVirtualDesktop) {
+    Import-Module PSVirtualDesktop
+  } else {
+    Write-Warning "PSVirtualDesktop module not found. Window management features disabled."
+  }
+
+  # Get the target desktop object by Name
+  # Note: This matches partial names (e.g., "Comms" matches "Comms Desktop")
+  $targetDesktop = Get-Desktop | Where-Object { $_.Name -match $DesktopName } | Select-Object -First 1
+
+  if ($null -eq $targetDesktop) {
+    Write-Warning "Desktop '$DesktopName' not found. Launching on current desktop."
+    Start-Process $App -ArgumentList $Args
+    return
+  }
+
+  # Start the process and pass the object through
+  $proc = Start-Process $App -ArgumentList $Args -PassThru
+
+  # Wait for the Window Handle (Max 10 seconds)
+  $timeout = 0
+  while ($proc.MainWindowHandle -eq 0 -and $timeout -lt 20) {
+    Start-Sleep -Milliseconds 500
+    $proc.Refresh()
+    $timeout++
+  }
+
+  # Move the window if we found a handle
+  if ($proc.MainWindowHandle -ne 0) {
+    $proc.MainWindowHandle | Move-Window $targetDesktop
+  } else {
+    Write-Warning "Could not grab window handle for $App (it might have launched via a wrapper)."
+  }
+}
 
 # --------------------------------------------------------------------------- #
 #                    FINAL ALIASES FOR CUSTOM FUNCTIONS                       #
