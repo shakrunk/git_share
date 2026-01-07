@@ -50,6 +50,13 @@ function start-work {
   Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zed" -Args "." # Editor
 }
 
+# Start the production api (server run only)
+function start-api {
+  Set-Location C:\GitRepos\rmleb-iip\backend;
+  poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8;
+
+}
+
 
 # --------------------------------------------------------------------------- #
 #                                GIT ALIASES                                  #
