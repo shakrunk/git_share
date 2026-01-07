@@ -10,7 +10,7 @@ function edital { nvim $profile; . $profile }
 
 # Edit this function and update it in the share file
 function wedital { 
-  Push-Location work_setup # Store current location to return to later
+  Push-Location "C:/Users/kkumar/Documents/git-repos/git_share/work_setup" # Store current location to return to later
   Write-Host "Syncing with remote..." -ForegroundColor Cyan; fetch; pull # Sync
   edital; Copy-Item $profile -Destination . -Force # Edit profile, copy to work share repo
   if ($(git status --porcelain)) { # Check if there are actual changes to commit
