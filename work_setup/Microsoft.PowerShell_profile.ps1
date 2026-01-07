@@ -280,10 +280,15 @@ function Start-AppOnDesktop {
     [string]$DesktopName
   )
 
-  if (Get-Module -ListAvailable -Name PSVirtualDesktop) {
-    Import-Module PSVirtualDesktop
-  } else {
-    Write-Warning "PSVirtualDesktop module not found. Window management features disabled."
+  # Check if module is loaded; if not, try to find and import it
+  if (-not (Get-Module -Name PSVirtualDesktop)) {
+    if (Get-Module -ListAvailable -Name PSVirtualDesktop) {
+      Import-Module PSVirtualDesktop
+    } else {
+      Write-Warning "PSVirtualDesktop module not found. Launching $App on current desktop."
+      Start-Process $App -ArgumentList $Args
+      return
+    }
   }
 
   # Get the target desktop object by Name
