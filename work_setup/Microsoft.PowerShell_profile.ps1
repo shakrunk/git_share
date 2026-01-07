@@ -106,6 +106,9 @@ function githist { git log --author="Krishna A. Kumar" --pretty=format:"%ad: %s"
 #                                SYSTEM SETUP                                 #
 # --------------------------------------------------------------------------- #
 
+# Add the local machine modules directory to the path
+$env:PSModulePath = "$env:LOCALAPPDATA\PowerShell\Modules;$env:PSModulePath"
+
 # Make the system prompt look good with oh-my-posh
 oh-my-posh init pwsh --config 'takuya' | Invoke-Expression
 
