@@ -42,12 +42,12 @@ function start-work {
   cd iip
 
   # Setup `Comms`
-  Start-AppOnDesktop -DesktopName "Comms" -App "olk" # Outlook
-  Start-AppOnDesktop -DesktopName "Comms" -App "ms-teams" # Teams
+  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "olk" # Outlook
+  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "ms-teams" # Teams
 
   # Setup `Main Work`
-  Start-AppOnDesktop -DesktopName "MainWork" -App "zen" # Browser
-  Start-AppOnDesktop -DesktopName "MainWork" -App "zed" -Args "." # Editor
+  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zen" # Browser
+  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zed" -Args "." # Editor
 }
 
 
