@@ -284,11 +284,11 @@ function Start-AppOnDesktop {
   )
 
   # Check if module is loaded; if not, try to find and import it
-  if (-not (Get-Module -Name PSVirtualDesktop)) {
-    if (Get-Module -ListAvailable -Name PSVirtualDesktop) {
-      Import-Module PSVirtualDesktop
+  if (-not (Get-Module -Name VirtualDesktop)) {
+    if (Get-Module -ListAvailable -Name VirtualDesktop) {
+      Import-Module VirtualDesktop
     } else {
-      Write-Warning "PSVirtualDesktop module not found. Launching $App on current desktop."
+      Write-Warning "VirtualDesktop module not found. Launching $App on current desktop."
       Start-Process $App -ArgumentList $Args
       return
     }
