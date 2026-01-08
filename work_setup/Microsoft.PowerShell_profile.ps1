@@ -72,6 +72,8 @@ function commit { git commit $args; push }
 function commit-np { git commit $args }
 function merge { git merge $args }
 function push { git push }
+function stash { git stash -u }
+function pop { git pop }
 
 # Lazy commit
 function adc { add; gcommit }
