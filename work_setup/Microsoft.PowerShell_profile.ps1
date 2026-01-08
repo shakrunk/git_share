@@ -285,9 +285,10 @@ Provide ONLY the HTML code block.
 # Helper function to Launch -> Wait -> Move
 function Start-AppOnDesktop {
   param (
-    [string]$App,
+    [string]$App,                # The command to run (e.g. "zed")
     [string]$Args = $null,
     [string]$DesktopName
+    [string]$ProcessName = $null # Optional: the actual process name (e.g. "OUTLOOK")
   )
 
   # Check if module is loaded; if not, try to find and import it
@@ -316,19 +317,41 @@ function Start-AppOnDesktop {
   # Start the process and pass the object through
   $proc = Start-Process $App -ArgumentList $Args -PassThru
 
-  # Wait for the Window Handle (Max 10 seconds)
+  # Loop to find the process handle
   $timeout = 0
-  while ($proc.MainWindowHandle -eq 0 -and $timeout -lt 20) {
+  $targetHandle = 0
+  while ($targetHandle -eq 0 -and $timeout -lt 20) {
+    # Ckeck the direct proces object (if it hasn't exited)
+    if (-not $proc.HasExited){
+      $proc.Refresh()
+      if ($proc.MainWindowHandle -ne 0) {
+        $targetHandle = $proc.MainWindowHandle
+        break # Found it? Exit immediately
+      }
+    }
+
+    # If direct check failed AND we have a ProcessName, look for matching running processes
+    if (-not [string]::IsNullOrEmpty($ProcessName)) {
+      # Get all processes with this name that have a window handle
+      $candidate = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -ne 0 } |
+        Select-Object -First 1
+
+      if ($candidate) { 
+        $targetHandle = $candidate.MainWindowHandle
+        break # Found it? Exit immediately
+      }
+    }
+
     Start-Sleep -Milliseconds 500
-    $proc.Refresh()
-    $timeout++
+    timeout++
   }
 
   # Move the window if we found a handle
-  if ($proc.MainWindowHandle -ne 0) {
-    $proc.MainWindowHandle | Move-Window $targetDesktop
+  if ($targetHandle -ne 0) {
+    $targetHandle | Move-Window $targetDesktop
   } else {
-    Write-Warning "Could not grab window handle for $App (it might have launched via a wrapper)."
+    Write-Warning "Could not grab window handle for $App (Wrapper exited or app took to long)."
   }
 }
 
