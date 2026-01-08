@@ -43,11 +43,11 @@ function start-work {
 
   # Setup `Comms`
   Start-AppOnDesktop -DesktopName "Comms Desktop" -App "olk" # Outlook
-  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "ms-teams" # Teams
+  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "ms-teams" -ProcessName "ms-teams" # Teams
 
   # Setup `Main Work`
-  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zen" # Browser
-  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zed" -Args "." # Editor
+  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zen" -ProcessName "zen"# Browser
+  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zed" -Args "." -ProcessName "Zed" # Editor
 }
 
 # Start the production api (server run only)
@@ -285,10 +285,10 @@ Provide ONLY the HTML code block.
 # Helper function to Launch -> Wait -> Move
 function Start-AppOnDesktop {
   param (
-    [string]$App,                # The command to run (e.g. "zed")
+    [string]$App,         # The command to run (e.g. "zed")
     [string]$Args = $null,
     [string]$DesktopName,
-    [string]$ProcessName = $null # Optional: the actual process name (e.g. "OUTLOOK")
+    [string]$ProcessName  # Mandatory for multi-process apps (e.g. "zen", "ms-teams", etc.)
   )
 
   # Check if module is loaded; if not, try to find and import it
@@ -314,44 +314,45 @@ function Start-AppOnDesktop {
   # Getthe target desktop object using the index
   $targetDesktop = Get-Desktop -Index $desktopInfo.Number
 
-  # Start the process and pass the object through
-  $proc = Start-Process $App -ArgumentList $Args -PassThru
+  # Capture start time and lanuch (going back 2s to account for clock skews/fast launching)
+  $startTime = (Get-Date).AddSeconds(-2)
 
-  # Loop to find the process handle
+  # Start the process and pass the object through
+  Start-Process $App -ArgumentList $Args -PassThru
+
+  # Hunt for the windaw handle
   $timeout = 0
   $targetHandle = 0
+
+  # If no ProcessName provided, assume the App name might be the process name (fallback)
+  if ([string]::IsNullOrEmpty($ProcessName)) { $ProcessName = $App }
+
+  Write-Host "Waiting for process '$ProcessName' to spawn a window..." -NoNewline
+
   while ($targetHandle -eq 0 -and $timeout -lt 20) {
-    # Ckeck the direct proces object (if it hasn't exited)
-    if (-not $proc.HasExited){
-      $proc.Refresh()
-      if ($proc.MainWindowHandle -ne 0) {
-        $targetHandle = $proc.MainWindowHandle
-        break # Found it? Exit immediately
-      }
-    }
+    # Find candidates (same name, started recently, has a window)
+    $candidates = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
+      Where-Object { $_.StartTime -ge $startTime -and $_.MainWindowHandle -ne 0 }
 
-    # If direct check failed AND we have a ProcessName, look for matching running processes
-    if (-not [string]::IsNullOrEmpty($ProcessName)) {
-      # Get all processes with this name that have a window handle
-      $candidate = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
-        Where-Object { $_.MainWindowHandle -ne 0 } |
-        Select-Object -First 1
-
-      if ($candidate) { 
-        $targetHandle = $candidate.MainWindowHandle
-        break # Found it? Exit immediately
-      }
+    # Grab the first one that qualifies
+    if ($candidates) {
+      # On the rare chance that multiple windows appeared this fast, pick the first
+      $p = $candidates | Select-Object -First 1
+      $targetHandle = $p.MainWindowHandle
+      break
     }
 
     Start-Sleep -Milliseconds 500
+    Write-Host "." -NoNewline
     $timeout++
   }
+  Write-Host "" # (New line)
 
   # Move the window if we found a handle
   if ($targetHandle -ne 0) {
     $targetHandle | Move-Window $targetDesktop
   } else {
-    Write-Warning "Could not grab window handle for $App (Wrapper exited or app took to long)."
+    Write-Warning "Timed out waiting for a window handle for '$ProcessName'."
   }
 }
 
