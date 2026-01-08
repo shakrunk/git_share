@@ -344,7 +344,7 @@ function Start-AppOnDesktop {
     }
 
     Start-Sleep -Milliseconds 500
-    timeout++
+    $timeout++
   }
 
   # Move the window if we found a handle
