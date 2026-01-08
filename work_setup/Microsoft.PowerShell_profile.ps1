@@ -9,7 +9,7 @@
 function edital { nvim $profile; . $profile }
 
 # Edit this function and update it in the share file
-function wedital { 
+function wedital {
   Push-Location "C:/Users/kkumar/Documents/git-repos/git_share/work_setup" # Store current location to return to later
   Write-Host "Syncing with remote..." -ForegroundColor Cyan; fetch; pull # Sync
   edital; Copy-Item $profile -Destination . -Force # Edit profile, copy to work share repo
@@ -30,7 +30,7 @@ function wedital {
     add; commit -m $newMsg # Stage, Commit, and Push
     Write-Host "Success: Profile updated and pushed ($newMsg)" -ForegroundColor Green
   } else { Write-Host "No changes detected. Nothing to commit." -ForegroundColor Yellow }
-  Pop-Location 
+  Pop-Location
 }
 
 # Semantically accurate commands
@@ -301,15 +301,17 @@ function Start-AppOnDesktop {
     }
   }
 
-  # Get the target desktop object by Name
-  # Note: This matches partial names (e.g., "Comms" matches "Comms Desktop")
-  $targetDesktop = Get-Desktop | Where-Object { $_.Name -match $DesktopName } | Select-Object -First 1
+  # Get the desktop index from the list by name
+  $desktopInfo = Get-DesktopList | Where-Object { $_.Name -match $DesktopName } | Select-Object -First 1
 
-  if ($null -eq $targetDesktop) {
+  if ($null -eq $desktopInfo) {
     Write-Warning "Desktop '$DesktopName' not found. Launching on current desktop."
     Start-Process $App -ArgumentList $Args
     return
   }
+
+  # Getthe target desktop object using the index
+  $targetDesktop = Get-Desktop -Index $desktopInfo.Number
 
   # Start the process and pass the object through
   $proc = Start-Process $App -ArgumentList $Args -PassThru
@@ -336,4 +338,3 @@ function Start-AppOnDesktop {
 
 Set-Alias -Name gcommit -Value Get-GCommitPrompt
 Set-Alias -Name report -Value Get-WeeklyReportPromptV3
-
