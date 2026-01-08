@@ -287,7 +287,7 @@ function Start-AppOnDesktop {
   param (
     [string]$App,                # The command to run (e.g. "zed")
     [string]$Args = $null,
-    [string]$DesktopName
+    [string]$DesktopName,
     [string]$ProcessName = $null # Optional: the actual process name (e.g. "OUTLOOK")
   )
 
