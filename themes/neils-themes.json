@@ -16,12 +16,15 @@
           "#79dfc160",
           "#c4a7e780"
         ],
-        "vim.mode.text": "#181818",
+        "vim.normal.foreground": "#181818",
         "vim.normal.background": "#ffffffe6",
+        "vim.insert.foreground": "#181818",
         "vim.insert.background": "#7ee787",
+        "vim.visual.foreground": "#181818",
         "vim.visual.background": "#60cdff",
         "vim.visual_line.background": "#60cdff",
         "vim.visual_block.background": "#60cdff",
+        "vim.replace.foreground": "#181818",
         "vim.replace.background": "#f97583",
 
         "background.appearance": "blurred",
