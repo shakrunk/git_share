@@ -434,9 +434,6 @@ Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-Gi
 # PART IV: Convenience Commands
 # ------------------------------------------
 
-# Lazy commit
-function adc { add; gcommit }
-
 # General branch switching
 function main { git switch main }
 function dev { git switch develop }
@@ -476,9 +473,13 @@ Assert-BinaryTool -Name "zoxide" -InstallHint "winget install ajeetdsouza.zoxide
 
 # Eza (Better `ls`)
 Assert-BinaryTool -Name "eza" -InstallHint "scoop install eza" -OnFound {
-    # Replace built-in aliases only if eza is actually present
-    Set-Alias -Name ls -Value eza -Force -Option AllScope
-    Set-Alias -Name dir -Value eza -Force -Option AllScope
+    # Remove the built-in ls/dir aliases so we can define functions with the same names
+    if (Test-Path alias:ls) { Remove-Item alias:ls -Force }
+    if (Test-Path alias:dir) { Remove-Item alias:dir -Force }
+
+    # Define ls as a function to include default flags (e.g., icons)
+    function global:ls { eza --icons $args }
+    function global:dir { eza --icons $args }
 
     # Define eza-specific helper functions globally
     function global:l  { eza -l --git --icons $args }         # l = long list with git and icons
