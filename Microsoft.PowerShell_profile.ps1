@@ -210,46 +210,6 @@ function dev { git switch develop }
 # Add any project-specific git aliases here
 # Include the project name and a timestamp for easy maintenence
 
-# =========================================================================== #
-#                                SYSTEM SETUP                                 #
-# =========================================================================== #
-
-# Apply theme immediately on startup
-Update-Theme
-
-# Set up git function autocomplete
-Import-Module posh-git
-
-# Make the system prompt look good with oh-my-posh
-oh-my-posh init pwsh --config $env:POSH_THEMES_PATH\custom.omp.json | Invoke-Expression
-
-# Set up terminal icons
-Import-Module -Name Terminal-Icons
-
-# Set up zoxide
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
-
-# Use eza to get better directory listing outputs (replace built-in aliases)
-Set-Alias -Name ls -Value eza -Force -Option AllScope
-Set-Alias -Name dir -Value eza -Force -Option AllScope
-
-# Use eza to get better directory listing outputs (replace built-in aliases)
-function l { eza -l --git --icons $args }           # l = long list with git and icons
-function ll { eza --icons $args }                   # ll = direct eza alias
-function la { eza -la --git --icons $args }         # la = long list, all files
-function lt { eza --tree --level=3 --icons $args }  # lt = tree view, 3 levels deep
-
-# Set PSReadLine options for prediction
-Import-Module PSReadLine
-Set-PSReadLineOption -PredictionSource History -PredictionViewStyle InlineView
-Set-PSReadLineOption -PredictionViewStyle ListView
-Set-PSReadLineOption -EditMode Windows
-
-#f45873b3-b655-43a6-b217-97c00aa0db58 PowerToys CommandNotFound module
-
-Import-Module -Name Microsoft.WinGet.CommandNotFound
-#f45873b3-b655-43a6-b217-97c00aa0db58
-
 
 # =========================================================================== #
 #                   CUSTOM FUNCTIONS (longer operations)                      #
@@ -435,13 +395,6 @@ Provide ONLY the HTML code block.
 
 
 # =========================================================================== #
-#                    FINAL ALIASES FOR CUSTOM FUNCTIONS                       #
-# =========================================================================== #
-
-Set-Alias -Name gcommit -Value Get-GCommitPrompt
-Set-Alias -Name report -Value Get-WeeklyReportPromptV3
-
-# =========================================================================== #
 #                         KANATA MANAGEMENT                                   #
 # =========================================================================== #
 
@@ -540,5 +493,53 @@ function Restart-Kanata {
     }
 }
 
+
+# =========================================================================== #
+#                    FINAL ALIASES FOR CUSTOM FUNCTIONS                       #
+# =========================================================================== #
+
+Set-Alias -Name gcommit -Value Get-GCommitPrompt
+Set-Alias -Name report -Value Get-WeeklyReportPromptV3
 # Quick alias for the daily driver command
 Set-Alias -Name kstart -Value Restart-Kanata
+
+
+# =========================================================================== #
+#                                SYSTEM SETUP                                 #
+# =========================================================================== #
+
+# Apply theme immediately on startup
+Update-Theme
+
+# Set up git function autocomplete
+Import-Module posh-git
+
+# Make the system prompt look good with oh-my-posh
+oh-my-posh init pwsh --config $env:POSH_THEMES_PATH\custom.omp.json | Invoke-Expression
+
+# Set up terminal icons
+Import-Module -Name Terminal-Icons
+
+# Set up zoxide
+Invoke-Expression (& { (zoxide init powershell | Out-String) })
+
+# Use eza to get better directory listing outputs (replace built-in aliases)
+Set-Alias -Name ls -Value eza -Force -Option AllScope
+Set-Alias -Name dir -Value eza -Force -Option AllScope
+
+# Use eza to get better directory listing outputs (replace built-in aliases)
+function l { eza -l --git --icons $args }           # l = long list with git and icons
+function ll { eza --icons $args }                   # ll = direct eza alias
+function la { eza -la --git --icons $args }         # la = long list, all files
+function lt { eza --tree --level=3 --icons $args }  # lt = tree view, 3 levels deep
+
+# Set PSReadLine options for prediction
+Import-Module PSReadLine
+Set-PSReadLineOption -PredictionSource History -PredictionViewStyle InlineView
+Set-PSReadLineOption -PredictionViewStyle ListView
+Set-PSReadLineOption -EditMode Windows
+
+#f45873b3-b655-43a6-b217-97c00aa0db58 PowerToys CommandNotFound module
+
+Import-Module -Name Microsoft.WinGet.CommandNotFound
+#f45873b3-b655-43a6-b217-97c00aa0db58
