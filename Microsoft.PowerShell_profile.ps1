@@ -6,18 +6,22 @@
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Edit this file (using my command name for "edit aliases" from my linux setup)
-function edital { nvim $profile; . $profile }
+function edital {
+    Start-Process zed -ArgumentList $profile -Wait
+    . $profile
+}
 
 # Edit this file and update it in the share repo
 function wedital {
     Push-Location "V:\repos\git_share"
     Write-Host "Syncing with remote..." -ForegroundColor Cyan
-    
+
     # Use native git commands for script reliability
     git fetch --prune
     git pull
 
     edital
+
     Copy-Item $profile -Destination . -Force
 
     if ($(git status --porcelain)) {
@@ -46,179 +50,6 @@ function wedital {
 # Semantically accurate commands
 Set-Alias -Name edit -Value zed
 Set-Alias -Name say  -Value Write-Host
-
-
-# =========================================================================== #
-#                                GIT ALIASES                                  #
-# =========================================================================== #
-
-# ------------------------------------------
-# PART I: PowerShell Native Functions
-# ------------------------------------------
-
-function Show-GitStatus {
-    # Renamed from Get-GitStatus to avoid conflict with posh-git
-    # Wrapper for 'git status'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git status @GitArgs
-}
-
-function Switch-GitBranch {
-    # Wrapper for 'git switch' (and 'git checkout' when compatible)
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git switch @GitArgs
-}
-
-function Merge-GitBranch {
-    # Wrapper for 'git merge'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git merge @GitArgs
-}
-
-function Push-GitBranch {
-    # Wrapper for 'git push'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git push @GitArgs
-}
-
-function Sync-GitRemote {
-    # Wrapper for 'git fetch'
-    [CmdletBinding()]
-    param(
-        [switch]$NoPrune,
-        [Parameter(ValueFromRemainingArguments)]$GitArgs
-    )
-
-    if ($NoPrune) {
-        Write-Host "Fetching..." -ForegroundColor Cyan
-        git fetch @GitArgs
-    } else {
-        Write-Host "Fetching (and pruning)..." -ForegroundColor Cyan
-        git fetch --prune @GitArgs
-    }
-}
-
-function Update-GitBranch {
-    # Wrapper for 'git pull'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git pull @GitArgs
-}
-
-function Add-GitItem {
-    # Warpper for 'git add' with auto-bulk-adding capability
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-
-    if ($GitArgs) {
-        git add @GitArgs
-    } else {
-        Write-Host "No file specified." -ForegroundColor Yellow
-        Write-Host "Adding ALL tracked/untracked changes (git add .)" -ForegroundColor Yellow
-
-        # Adding a clearer visual prompt
-        $confirmation = Read-Host -Prompt "Type 'y' to confirm git add ."
-        if ($confirmation -eq 'y') {
-            git add .
-        } else {
-            Write-Warning "Operation cancelled."
-        }
-    }
-}
-
-function Submit-GitChanges {
-    # Wrapper for 'git commit' with Auto-Push capability
-    [CmdletBinding()]
-    param(
-        [switch]$NoPush,
-        [Parameter(ValueFromRemainingArguments)]$GitArgs
-    )
-
-    # Pass the arguments to commit
-    git commit @GitArgs
-
-    # Check if commit was successful ($?) and NoPush is NOT active
-    if ($LASTEXITCODE -eq 0 -and -not $NoPush) {
-        Write-Host "🚀 Auto-Pushing..." -ForegroundColor Green
-        git push
-    } elseif ($NoPush) {
-        Write-Host "Changes committed locally. (Auto-Push skipped)" -ForegroundColor Gray
-    }
-}
-
-function Save-GitStash {
-    # Wrapper for 'git stash -u'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git stash -u @GitArgs
-}
-
-function Restore-GitStash {
-    # Wrapper for 'git stash pop'
-    [CmdletBinding()]
-    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-    git stash pop @GitArgs
-}
-
-# ------------------------------------------
-# PART II: Aliases
-# ------------------------------------------
-
-Set-Alias -Name status  -Value Show-GitStatus
-Set-Alias -Name switchb -Value Switch-GitBranch
-Set-Alias -Name merge   -Value Merge-GitBranch
-Set-Alias -Name push    -Value Push-GitBranch
-Set-Alias -Name fetch   -Value Sync-GitRemote
-Set-Alias -Name pull    -Value Update-GitBranch
-Set-Alias -Name add     -Value Add-GitItem
-Set-Alias -Name commit  -Value Submit-GitChanges
-Set-Alias -Name stash   -Value Save-GitStash
-Set-Alias -Name pop     -Value Restore-GitStash
-
-# ------------------------------------------
-# PART III: The "Bridge" Autocompleter
-# ------------------------------------------
-
-$GitCompleter = {
-    param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
-
-    # 1. Try to use Posh-Git if available
-    if (Get-Module posh-git) {
-        # This function is internal to posh-git, but we can call it.
-        # It asks git to list refs based on the input.
-        # This supports branches AND tags.
-        return Get-GitReference $wordToComplete
-    }
-
-    # 2. Fallback: Manual method (if posh-git isn't loaded)
-    $branches = git branch -a --format='%(refname:short)' 2>$null
-    $branchMatches = $branches | Where-Object { $_ -like "$wordToComplete*" }
-    foreach ($match in $branchMatches) {
-        [System.Management.Automation.CompletionResult]::new($match, $match, 'ParameterValue', $match)
-    }
-}
-
-# Apply to relevant commands
-Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push' -ScriptBlock $GitCompleter
-
-# ------------------------------------------
-# PART IV: Convenience Commands
-# ------------------------------------------
-
-# Lazy commit
-function adc { add; gcommit }
-
-# General branch switching
-function main { git switch main }
-function dev { git switch develop }
-
-# Project-specific branch switching
-# Add any project-specific git aliases here
-# Include the project name and a timestamp for easy maintenence
 
 
 # =========================================================================== #
@@ -311,6 +142,23 @@ function Assert-BinaryTool {
             Write-Host "   To install: $InstallHint" -ForegroundColor DarkGray
         }
     }
+}
+
+# ---- Helper Function for instant y/n detection ----
+function Assert-Confirmation {
+    param([string]$Message)
+    Write-Host "$Message (y/n) " -NoNewline -ForegroundColor Yellow
+
+    # ReadKey options: NoEcho (don't print char automatically), IncludeKeyDown (ignore key-up events)
+    $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+    if ($key.Character -eq 'y') {
+        Write-Host "y" -ForegroundColor Green # Manually print the 'y' for visual confirmation
+        return $true
+    }
+
+    Write-Host "$($key.Character)" -ForegroundColor Red # Print whatever else they typed
+    return $false
 }
 
 # =========================================================================== #
@@ -415,6 +263,183 @@ function Restart-Kanata {
 
 # Quick alias for the daily driver command
 Set-Alias -Name kstart -Value Restart-Kanata
+
+
+# =========================================================================== #
+#                                GIT ALIASES                                  #
+# =========================================================================== #
+
+# ------------------------------------------
+# PART I: PowerShell Native Functions
+# ------------------------------------------
+
+function Show-GitStatus {
+    # Renamed from Get-GitStatus to avoid conflict with posh-git
+    # Wrapper for 'git status'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git status @GitArgs
+}
+
+function Switch-GitBranch {
+    # Wrapper for 'git switch' (and 'git checkout' when compatible)
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git switch @GitArgs
+}
+
+function Merge-GitBranch {
+    # Wrapper for 'git merge'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git merge @GitArgs
+}
+
+function Push-GitBranch {
+    # Wrapper for 'git push'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git push @GitArgs
+}
+
+function Sync-GitRemote {
+    # Wrapper for 'git fetch'
+    [CmdletBinding()]
+    param(
+        [switch]$NoPrune,
+        [Parameter(ValueFromRemainingArguments)]$GitArgs
+    )
+
+    if ($NoPrune) {
+        Write-Host "Fetching..." -ForegroundColor Cyan
+        git fetch @GitArgs
+    } else {
+        Write-Host "Fetching (and pruning)..." -ForegroundColor Cyan
+        git fetch --prune @GitArgs
+    }
+}
+
+function Update-GitBranch {
+    # Wrapper for 'git pull'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git pull @GitArgs
+}
+
+function Add-GitItem {
+    # Warpper for 'git add' with auto-bulk-adding capability
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+
+    if ($GitArgs) {
+        git add @GitArgs
+    } else {
+        Write-Host "No file specified." -ForegroundColor Yellow
+        Write-Host "Adding ALL tracked/untracked changes (git add .)" -ForegroundColor Yellow
+
+        # Adding a clearer visual prompt
+        if (Assert-Confirmation "Stage ALL changes (git add .)?") {
+            git add .
+        } else {
+            Write-Warning "`nOperation cancelled."
+        }
+    }
+}
+
+function Submit-GitChanges {
+    # Wrapper for 'git commit' with Auto-Push capability
+    [CmdletBinding()]
+    param(
+        [switch]$NoPush,
+        [Parameter(ValueFromRemainingArguments)]$GitArgs
+    )
+
+    # Pass the arguments to commit
+    git commit @GitArgs
+
+    # Check if commit was successful ($?) and NoPush is NOT active
+    if ($LASTEXITCODE -eq 0 -and -not $NoPush) {
+        Write-Host "" -ForegroundColor Green
+        if (Assert-Confirmation "`n🚀 Auto-Push to remote?") {
+            Write-Host "Pushing"
+            git push
+        } else {
+            Write-Host "`nAuto-Push aborted by user. Changes committed locally only." -ForegroundColor Gray
+        }
+    } elseif ($NoPush) {
+        Write-Host "Changes committed locally. (Auto-Push skipped)" -ForegroundColor Gray
+    }
+}
+
+function Save-GitStash {
+    # Wrapper for 'git stash -u'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git stash -u @GitArgs
+}
+
+function Restore-GitStash {
+    # Wrapper for 'git stash pop'
+    [CmdletBinding()]
+    param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+    git stash pop @GitArgs
+}
+
+# ------------------------------------------
+# PART II: Aliases
+# ------------------------------------------
+
+Set-Alias -Name status  -Value Show-GitStatus
+Set-Alias -Name switchb -Value Switch-GitBranch
+Set-Alias -Name merge   -Value Merge-GitBranch
+Set-Alias -Name push    -Value Push-GitBranch
+Set-Alias -Name fetch   -Value Sync-GitRemote
+Set-Alias -Name pull    -Value Update-GitBranch
+Set-Alias -Name add     -Value Add-GitItem
+Set-Alias -Name commit  -Value Submit-GitChanges
+Set-Alias -Name stash   -Value Save-GitStash
+Set-Alias -Name pop     -Value Restore-GitStash
+
+# ------------------------------------------
+# PART III: The "Bridge" Autocompleter
+# ------------------------------------------
+
+$GitCompleter = {
+    param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
+
+    # 1. Try to use Posh-Git if available
+    if (Get-Module posh-git) {
+        # This function is internal to posh-git, but we can call it.
+        # It asks git to list refs based on the input.
+        # This supports branches AND tags.
+        return Get-GitReference $wordToComplete
+    }
+
+    # 2. Fallback: Manual method (if posh-git isn't loaded)
+    $branches = git branch -a --format='%(refname:short)' 2>$null
+    $branchMatches = $branches | Where-Object { $_ -like "$wordToComplete*" }
+    foreach ($match in $branchMatches) {
+        [System.Management.Automation.CompletionResult]::new($match, $match, 'ParameterValue', $match)
+    }
+}
+
+# Apply to relevant commands
+Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push' -ScriptBlock $GitCompleter
+
+# ------------------------------------------
+# PART IV: Convenience Commands
+# ------------------------------------------
+
+# Lazy commit
+function adc { add; gcommit }
+
+# General branch switching
+function main { git switch main }
+function dev { git switch develop }
+
+# Project-specific branch switching
+# Add any project-specific git aliases here
+# Include the project name and a timestamp for easy maintenence
 
 
 # =========================================================================== #
