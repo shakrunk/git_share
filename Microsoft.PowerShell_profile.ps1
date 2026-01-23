@@ -10,27 +10,37 @@ function edital { nvim $profile; . $profile }
 
 # Edit this file and update it in the share repo
 function wedital {
-  Push-Location "V:\repos\git_share" # Store current location to return to later
-  Write-Host "Syncing with remote..." -ForegroundColor Cyan; fetch; pull # Sync
-  edital; Copy-Item $profile -Destination . -Force # Edit profile, copy to work share repo
-  if ($(git status --porcelain)) { # Check if there are actual changes to commit
-    $lastMsg = git log -1 --pretty=format:"%s" # Get last commit (subject line)
+    Push-Location "V:\repos\git_share"
+    Write-Host "Syncing with remote..." -ForegroundColor Cyan
+    
+    # Use native git commands for script reliability
+    git fetch --prune
+    git pull
 
-    # Regex match for 'shr' followed by digits
-    if ($lastMsg -match 'shr(\d+)') {
-      $prevNum = [int]$matches[1]
-      $nextNum = $prevNum + 1
+    edital
+    Copy-Item $profile -Destination . -Force
+
+    if ($(git status --porcelain)) {
+        # Scan last 10 commits to find the last 'shr' number, preventing reset on manual commits
+        $lastShrCommit = git log -n 10 --pretty=format:"%s" | Select-String -Pattern 'shr(\d+)' | Select-Object -First 1
+
+        if ($lastShrCommit) {
+            $prevNum = [int]$lastShrCommit.Matches.Groups[1].Value
+            $nextNum = $prevNum + 1
+        } else {
+            $nextNum = 1
+        }
+
+        $newMsg = "shr{0:D3}" -f $nextNum
+
+        git add .
+        git commit -m $newMsg
+        git push
+        Write-Host "Success: Profile updated and pushed ($newMsg)" -ForegroundColor Green
     } else {
-      $nextNum = 1 # Fallback if the pattern breaks
+        Write-Host "No changes detected." -ForegroundColor Yellow
     }
-
-    # Format strings to ensure 3 digits (e.g. 5 becomes 005)
-    $newMsg = "shr{0:D3}" -f $nextNum
-
-    add .; commit -m $newMsg # Stage (all so profile name may change), Commit, and Push
-    Write-Host "Success: Profile updated and pushed ($newMsg)" -ForegroundColor Green
-  } else { Write-Host "No changes detected. Nothing to commit." -ForegroundColor Yellow }
-  Pop-Location
+    Pop-Location
 }
 
 # Semantically accurate commands
