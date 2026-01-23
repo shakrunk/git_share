@@ -54,7 +54,6 @@ function start-work {
 function start-api {
   Set-Location C:\GitRepos\rmleb-iip\backend;
   poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8;
-
 }
 
 
