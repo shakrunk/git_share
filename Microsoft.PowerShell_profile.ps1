@@ -436,7 +436,7 @@ Assert-BinaryTool -Name "zoxide" -InstallHint "winget install ajeetdsouza.zoxide
 }
 
 # Eza (Better `ls`)
-Assert-BinaryTool -Name "eza" -InstallHint "scoop install eza" -OnFound {
+Assert-BinaryTool -Name "eza" -InstallHint "winget install eza" -OnFound {
     # Replace built-in aliases only if eza is actually present
     Set-Alias -Name ls -Value eza -Force -Option AllScope
     Set-Alias -Name dir -Value eza -Force -Option AllScope
