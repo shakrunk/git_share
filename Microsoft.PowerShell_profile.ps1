@@ -7,14 +7,14 @@
 
 # Edit this file (using my command name for "edit aliases" from my linux setup)
 function edital {
-    Start-Process zed -ArgumentList $profile -Wait
+    Start-Process zed -ArgumentList "--wait", $profile -Wait
     . $profile
 }
 
 # Edit this file and update it in the share repo
 function wedital {
     # WEDITAL TEST COMMENT: to test the wedital system just iterate the following:
-    # 1
+    # 3
     # (or just modify however you see fit)
 
     Push-Location "V:\repos\git_share"
