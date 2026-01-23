@@ -12,7 +12,7 @@ function edital { nvim $profile; . $profile }
 function wedital {
     Push-Location "V:\repos\git_share"
     Write-Host "Syncing with remote..." -ForegroundColor Cyan
-
+    
     # Use native git commands for script reliability
     git fetch --prune
     git pull
@@ -442,7 +442,7 @@ Assert-PSModule -Name "Terminal-Icons"
 
 # Zoxide (Better `cd`)
 Assert-BinaryTool -Name "zoxide" -InstallHint "winget install ajeetdsouza.zoxide" -OnFound {
-    Invoke-Expression (& { (zoxide init powershell --cmd cd | Out-String) })
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
 
 # Eza (Better `ls`)
