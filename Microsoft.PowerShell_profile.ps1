@@ -6,7 +6,7 @@
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Edit this file (using my command name for "edit aliases" from my linux setup)
-function edital { zed $profile; . $profile }
+function edital { nvim $profile; . $profile }
 
 # Edit this file and update it in the share repo
 function wedital {
@@ -514,9 +514,14 @@ Update-Theme
 if (Get-Module -ListAvailable posh-git) {
     Import-Module posh-git
 } else {
-    Write-Warning "posh-git not found. ."
-    Install-Module posh-git -Scope AllUsers
-    Import-Module posh-git
+    Write-Warning "Could not find the module ``posh-git``.  Attempting to install..."
+    Try {
+        Install-Module posh-git -Scope CurrentUser
+        Import-Module posh-git
+    } Catch {
+        Write-Warning "Was unable to install ``posh-git`` module. This might be caused by permission issues."
+        Write-Warning "Open an Administrator terminal and use the command ``Install-Module posh-git -Scope CurrentUser``"
+    }
 }
 
 # Make the system prompt look good with oh-my-posh
