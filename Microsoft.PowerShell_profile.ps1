@@ -500,8 +500,7 @@ function Restart-Kanata {
 
 Set-Alias -Name gcommit -Value Get-GCommitPrompt
 Set-Alias -Name report -Value Get-WeeklyReportPromptV3
-# Quick alias for the daily driver command
-Set-Alias -Name kstart -Value Restart-Kanata
+Set-Alias -Name kstart -Value Restart-Kanata # Quick alias for the daily driver command
 
 
 # =========================================================================== #
@@ -512,7 +511,13 @@ Set-Alias -Name kstart -Value Restart-Kanata
 Update-Theme
 
 # Set up git function autocomplete
-Import-Module posh-git
+if (Get-Module -ListAvailable posh-git) {
+    Import-Module posh-git
+} else {
+    Write-Warning "posh-git not found. ."
+    Install-Module posh-git -Scope AllUsers
+    Import-Module posh-git
+}
 
 # Make the system prompt look good with oh-my-posh
 oh-my-posh init pwsh --config $env:POSH_THEMES_PATH\custom.omp.json | Invoke-Expression
