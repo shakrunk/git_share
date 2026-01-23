@@ -13,6 +13,10 @@ function edital {
 
 # Edit this file and update it in the share repo
 function wedital {
+    # WEDITAL TEST COMMENT: to test the wedital system just iterate the following:
+    # 1
+    # (or just modify however you see fit)
+
     Push-Location "V:\repos\git_share"
     Write-Host "Syncing with remote..." -ForegroundColor Cyan
 
