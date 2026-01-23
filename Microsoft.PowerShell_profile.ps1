@@ -27,14 +27,14 @@ function wedital {
     # Format strings to ensure 2 digits (e.g. 5 becomes 05)
     $newMsg = "shr{0:D2}" -f $nextNum
 
-    add -y; commit -m $newMsg # Stage, Commit, and Push
+    add .; commit -m $newMsg # Stage (all so profile name may change), Commit, and Push
     Write-Host "Success: Profile updated and pushed ($newMsg)" -ForegroundColor Green
   } else { Write-Host "No changes detected. Nothing to commit." -ForegroundColor Yellow }
   Pop-Location
 }
 
 # Semantically accurate commands
-Set-Alias -Name edit -Value nvim
+Set-Alias -Name edit -Value zed
 Set-Alias -Name say  -Value Write-Host
 
 
