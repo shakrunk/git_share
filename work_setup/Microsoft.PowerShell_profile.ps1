@@ -510,6 +510,55 @@ function Submit-GitChanges {
   }
 }
 
+function Update-LastCommit {
+  <#
+  .SYNOPSIS
+    Amends the last commit with staged changes.
+    Defaults to keeping the previous commit message (--no-edit).
+    Use -Edit to open the configured text editor.
+  #>
+  [CmdletBinding()]
+  param(
+    [switch]$Edit,
+    [Parameter(ValueFromRemainingArguments)]$GitArgs
+  )
+
+  # Define base arguments
+  $params = @("commit", "--amend")
+
+  # Detect if the user manually passed a message flag (-m) via GitArgs
+  # We do this because git errors out if you combine --no-edit with -m
+  $hasMsgArg = ($GitArgs -join " ") -match '(-m\b|--message\b|-F\b|--file\b)'
+
+  # Apply --no-edit ONLY if:
+  #   - The user did NOT ask to edit (-Edit is false)
+  #   - The user did NOT provide a new message manually
+  if (-not $Edit -and -not $hasMsgArg) {
+    $params += "--no-edit"
+  }
+
+  # Append any other arguments (filenames, flags, etc.)
+  if ($GitArgs) {
+    $params += $GitArgs
+  }
+
+  # Run Git
+  git @params
+
+  # Check if the commit was successful before prompting to push
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "" # Visual spacer
+
+    # Use your existing instant-confirmation tool
+    if (Assert-Confirmation "🚀 Force Push to remote?") {
+      Write-Host "Force Pushing..." -ForegroundColor Cyan
+      git push --force
+    } else {
+      Write-Host "`nForce Push skipped." -ForegroundColor Gray
+    }
+  }
+}
+
 function Save-GitStash {
   # Wrapper for 'git stash -u'
   [CmdletBinding()]
@@ -538,6 +587,7 @@ Set-Alias -Name add     -Value Add-GitItem
 Set-Alias -Name commit  -Value Submit-GitChanges
 Set-Alias -Name stash   -Value Save-GitStash
 Set-Alias -Name pop     -Value Restore-GitStash
+Set-Alias -Name amend   -Value Update-LastCommit
 
 # ------------------------------------------
 # PART III: The "Bridge" Autocompleter
