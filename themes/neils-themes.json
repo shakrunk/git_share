@@ -772,7 +772,7 @@
           "#8b5cf680"
         ],
         "vim.normal.foreground": "#f5f5f5",
-        "vim.normal.background": "#000000e6",
+        "vim.normal.background": "#00000080",
         "vim.insert.foreground": "#f5f5f5",
         "vim.insert.background": "#16825d",
         "vim.visual.foreground": "#f5f5f5",
@@ -785,7 +785,7 @@
         "background.appearance": "blurred",
 
         "border": "#00000006",
-        "border.variant": "#00000008",
+        "border.variant": "#00000020",
         "border.focused": "#0078d480",
         "border.selected": "#0078d460",
         "border.transparent": "#00000000",
@@ -823,17 +823,17 @@
         "status_bar.background": "#fafafa70",
         "title_bar.background": "#fafafa70",
         "title_bar.inactive_background": "#fcfcfc70",
-        "toolbar.background": "#fafafa80",
-        "tab_bar.background": "#fafafa70",
-        "tab.inactive_background": "#fafafa60",
-        "tab.active_background": "#ffffff90",
+        "toolbar.background": "#fafafad0",
+        "tab_bar.background": "#fafafa00",
+        "tab.inactive_background": "#fafafab0",
+        "tab.active_background": "#fafafad0",
 
         "search.match_background": "#0078d430",
 
         "panel.background": "#fafafa00",
         "panel.focused_border": "#0078d450",
-        "panel.indent_guide": "#00000008",
-        "panel.indent_guide_active": "#00000020",
+        "panel.indent_guide": "#00000020",
+        "panel.indent_guide_active": "#000000a0",
         "panel.indent_guide_hover": "#0078d460",
         "panel.overlay_background": "#f5f5f5d0",
 
@@ -853,12 +853,12 @@
         "minimap.thumb.border": null,
 
         "editor.foreground": "#24292f",
-        "editor.background": "#fafafa70",
-        "editor.gutter.background": "#fafafa70",
+        "editor.background": "#fafafad0",
+        "editor.gutter.background": "#fafafad0",
         "editor.subheader.background": "#fafafa8a",
-        "editor.active_line.background": "#00000005",
+        "editor.active_line.background": "#00000010",
         "editor.highlighted_line.background": "#0078d410",
-        "editor.line_number": "#1f1f1f30",
+        "editor.line_number": "#1f1f1fd0",
         "editor.active_line_number": "#005a9e",
         "editor.invisible": "#1f1f1f18",
         "editor.wrap_guide": "#00000008",
@@ -925,8 +925,8 @@
         "ignored.border": "#1f1f1f33",
         "ignored.background": "#00000006",
 
-        "modified": "#953800",
-        "modified.border": "#953800",
+        "modified": "#bc7201",
+        "modified.border": "#bc7201",
         "modified.background": "#95380018",
 
         "predictive": "#1f1f1f35",
@@ -941,8 +941,8 @@
         "info.border": "#1b7c83",
         "info.background": "#1b7c8318",
 
-        "warning": "#953800",
-        "warning.border": "#953800",
+        "warning": "#d2862a",
+        "warning.border": "#d2862a",
         "warning.background": "#95380014",
 
         "error": "#cf222e",
@@ -1002,7 +1002,7 @@
 
         "version_control.added": "#116329",
         "version_control.deleted": "#cf222e",
-        "version_control.modified": "#953800",
+        "version_control.modified": "#e3b202",
         "version_control.renamed": "#0969da",
         "version_control.conflict": "#953800",
         "version_control.conflict_marker.ours": "#11632925",
