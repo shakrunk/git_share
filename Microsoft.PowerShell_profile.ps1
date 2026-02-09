@@ -439,55 +439,81 @@ function Restore-GitStash {
 }
 
 function Update-GitWip {
-  <#
-  .SYNOPSIS
-    Auto-stages all changes.
-    If last commit was 'wip', amends it (and force pushes).
-    Otherwise, creates new 'wip' commit (and pushes).
-  #>
+    [CmdletBinding()]
+    param (
+        [string]$Message = "wip",
+        [switch]$NoPush
+    )
 
-  # 1. Check for changes
-  if (-not $(git status --porcelain)) {
-    Write-Host "No changes to save." -ForegroundColor Yellow
-    return
-  }
-
-  # 2. Stage all changes
-  Write-Host "Staging all changes..." -ForegroundColor Cyan
-  git add .
-
-  # 3. Get last commit message
-  # 2>$null prevents error if this is a fresh repo with 0 commits
-  $lastMsg = git log -1 --pretty=%s 2>$null
-
-  if ($lastMsg -eq "wip") {
-    # --- AMEND PATH ---
-    Write-Host "Last commit was 'wip'. Amending..." -ForegroundColor Cyan
-    git commit --amend --no-edit
-
-    # Check for remote before pushing
-    if ($(git remote)) {
-      Write-Host "Force pushing update to remote..." -ForegroundColor Cyan
-      git push --force
-    } else {
-      Write-Host "No remote detected. Local amend only." -ForegroundColor Gray
+    # 1. Check if inside a git repo
+    if (-not (Test-Path .git) -and -not (git rev-parse --git-dir 2>$null)) {
+        Write-Error "Not inside a Git repository."
+        return
     }
 
-  } else {
-    # --- NEW COMMIT PATH ---
-    Write-Host "Creating new 'wip' commit..." -ForegroundColor Cyan
-    git commit -m "wip"
-
-    # Check for remote before pushing
-    if ($(git remote)) {
-      Write-Host "Pushing to remote..." -ForegroundColor Cyan
-      git push
-    } else {
-      Write-Host "No remote detected. Local commit only." -ForegroundColor Gray
+    # 2. Check for changes (staged, unstaged, or untracked)
+    if (-not $(git status --porcelain)) {
+        Write-Warning "No changes to save."
+        return
     }
-  }
 
-  Write-Host "✅ Wip state saved." -ForegroundColor Green
+    # 3. Stage all changes
+    Write-Host "Staging all changes..." -ForegroundColor Cyan
+    git add .
+
+    # Check if stage failed (rare, but possible with lock files)
+    if ($LASTEXITCODE -ne 0) { return }
+
+    # 4. Logic: Amend or New Commit
+    $lastMsg = git log -1 --pretty=%s 2>$null
+
+    if ($lastMsg -eq "wip") {
+        # --- AMEND PATH ---
+        Write-Host "Last commit was 'wip'. Amending..." -ForegroundColor Cyan
+
+        # Amend without changing the message (no-edit)
+        git commit --amend --no-edit
+        if ($LASTEXITCODE -ne 0) { return }
+
+        if (-not $NoPush) {
+            # Check for remote
+            if ($(git remote)) {
+                Write-Host "Force pushing (safely) to remote..." -ForegroundColor Cyan
+                # Use force-with-lease to prevent overwriting others' work
+                git push --force-with-lease
+            } else {
+                Write-Host "No remote detected. Local amend only." -ForegroundColor Gray
+            }
+        }
+
+    } else {
+        # --- NEW COMMIT PATH ---
+        Write-Host "Creating new '$Message' commit..." -ForegroundColor Cyan
+        git commit -m $Message
+        if ($LASTEXITCODE -ne 0) { return }
+
+        if (-not $NoPush) {
+            if ($(git remote)) {
+                # Check if current branch has an upstream set
+                $currentBranch = git symbolic-ref --short HEAD
+                $upstream = git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>$null
+
+                if (-not $upstream) {
+                    Write-Host "First push for branch '$currentBranch'. Setting upstream..." -ForegroundColor Cyan
+                    git push -u origin HEAD
+                } else {
+                    Write-Host "Pushing to remote..." -ForegroundColor Cyan
+                    git push
+                }
+            } else {
+                Write-Host "No remote detected. Local commit only." -ForegroundColor Gray
+            }
+        }
+    }
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ Work-In-Progress state saved." -ForegroundColor Green
+    }
 }
 
 # ------------------------------------------
