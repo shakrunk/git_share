@@ -17,7 +17,7 @@ function wedital {
   # 3
   # (or just modify however you see fit)
 
-  Push-Location "V:\repos\git_share"
+  Push-Location "C:\Users\kkumar\Documents\git-repos\git_share"
   Write-Host "Syncing with remote..." -ForegroundColor Cyan
 
   # Use native git commands for script reliability
@@ -573,6 +573,58 @@ function Restore-GitStash {
   git stash pop @GitArgs
 }
 
+function Update-GitWip {
+  <#
+  .SYNOPSIS
+    Auto-stages all changes.
+    If last commit was 'wip', amends it (and force pushes).
+    Otherwise, creates new 'wip' commit (and pushes).
+  #>
+
+  # 1. Check for changes
+  if (-not $(git status --porcelain)) {
+    Write-Host "No changes to save." -ForegroundColor Yellow
+    return
+  }
+
+  # 2. Stage all changes
+  Write-Host "Staging all changes..." -ForegroundColor Cyan
+  git add .
+
+  # 3. Get last commit message
+  # 2>$null prevents error if this is a fresh repo with 0 commits
+  $lastMsg = git log -1 --pretty=%s 2>$null
+
+  if ($lastMsg -eq "wip") {
+    # --- AMEND PATH ---
+    Write-Host "Last commit was 'wip'. Amending..." -ForegroundColor Cyan
+    git commit --amend --no-edit
+
+    # Check for remote before pushing
+    if ($(git remote)) {
+      Write-Host "Force pushing update to remote..." -ForegroundColor Cyan
+      git push --force
+    } else {
+      Write-Host "No remote detected. Local amend only." -ForegroundColor Gray
+    }
+
+  } else {
+    # --- NEW COMMIT PATH ---
+    Write-Host "Creating new 'wip' commit..." -ForegroundColor Cyan
+    git commit -m "wip"
+
+    # Check for remote before pushing
+    if ($(git remote)) {
+      Write-Host "Pushing to remote..." -ForegroundColor Cyan
+      git push
+    } else {
+      Write-Host "No remote detected. Local commit only." -ForegroundColor Gray
+    }
+  }
+
+  Write-Host "✅ Work-In-Progress state saved." -ForegroundColor Green
+}
+
 # ------------------------------------------
 # PART II: Aliases
 # ------------------------------------------
@@ -588,6 +640,7 @@ Set-Alias -Name commit  -Value Submit-GitChanges
 Set-Alias -Name stash   -Value Save-GitStash
 Set-Alias -Name pop     -Value Restore-GitStash
 Set-Alias -Name amend   -Value Update-LastCommit
+Set-Alias -Name wip     -Value Update-GitWip
 
 # ------------------------------------------
 # PART III: The "Bridge" Autocompleter
