@@ -14,7 +14,7 @@ function edital {
 # Edit this file and update it in the share repo
 function wedital {
   # WEDITAL TEST COMMENT: to test the wedital system just iterate the following:
-  # 3
+  # 4
   # (or just modify however you see fit)
 
   Push-Location "C:\Users\kkumar\Documents\git-repos\git_share"
@@ -26,7 +26,7 @@ function wedital {
 
   edital
 
-  Copy-Item $profile -Destination . -Force
+  Copy-Item $profile -Destination .\work_setup -Force
 
   if ($(git status --porcelain)) {
     # Scan last 10 commits to find the last 'shr' number, preventing reset on manual commits
