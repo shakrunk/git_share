@@ -165,6 +165,51 @@ function Assert-Confirmation {
   return $false
 }
 
+
+function Get-GCommitPrompt {
+  #
+  # Creates a smart commit prompt (with staged diffs) and copies it to the clipboard.
+  # This version asks the AI to determine if changes should be split into multiple commits.
+  #
+  param()
+
+  # Get the diff output
+  $diffOutput = git diff --staged | Out-String
+
+  # Check if there is actual output to avoid copying an empty prompt
+  if ([string]::IsNullOrWhiteSpace($diffOutput)) {
+    Write-Host "⚠️ No staged changes found. Nothing copied." -ForegroundColor Yellow
+    return
+  }
+
+  # Define the prompt template using a verbatim here-string
+  $promptTemplate = @'
+Please review the following staged git changes:
+```
+{0}
+```
+
+**Instructions:**
+1. **Analyze Atomicity:** Determine if these changes represent a single logical unit of work or multiple distinct units that should be split.
+2. **If Multiple Commits are needed:**
+   - List the suggested commits.
+   - For each commit, describe exactly which files or logic chunks belong to it.
+   - Provide the commit message for each in a dedicated code block labeled "plaintext".
+3. **If a Single Commit is sufficient:**
+   - Provide the single professional commit message in a code block labeled "plaintext".
+
+**Constraint:**
+The GUI I use will ONLY display a copy button if the code block language is specified. You must label all commit message blocks as "plaintext".
+'@
+
+  # Inject diff and copy to clipboard
+  ($promptTemplate -f $diffOutput) | Set-Clipboard
+
+  # Feedback
+  Write-Host "✅ Smart split-commit prompt copied to clipboard!" -ForegroundColor Green
+}
+Set-Alias -Name gcommit -Value Get-GCommitPrompt
+
 # =========================================================================== #
 #                         KANATA MANAGEMENT                                   #
 # =========================================================================== #
