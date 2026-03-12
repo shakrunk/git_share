@@ -709,6 +709,8 @@ function build-components { pnpm --filter @rmleb-iip/ui-components build }
 function build-client { pnpm --filter @rmleb-iip/api-client build }
 function githist { git log --author="Krishna A. Kumar" --pretty=format:"%ad: %s" --date=human }
 
+# Typos
+Set-Alias -Name celar -Value Clear-Host
 
 # =========================================================================== #
 #                             FINAL SYSTEM SETUP                              #

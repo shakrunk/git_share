@@ -590,6 +590,8 @@ function dev { git switch develop }
 # Add any project-specific git aliases here
 # Include the project name and a timestamp for easy maintenence
 
+# Typos
+Set-Alias -Name celar -Value Clear-Host
 
 # =========================================================================== #
 #                             FINAL SYSTEM SETUP                              #
