@@ -165,48 +165,75 @@ function Assert-Confirmation {
   return $false
 }
 
-
 function Get-GCommitPrompt {
-  #
-  # Creates a smart commit prompt (with staged diffs) and copies it to the clipboard.
-  # This version asks the AI to determine if changes should be split into multiple commits.
-  #
-  param()
+    <#
+    .SYNOPSIS
+    Creates a smart commit prompt (with diffs) and copies it to the clipboard.
+    .DESCRIPTION
+    By default, this grabs unstaged changes. Use the -Staged flag to grab staged changes.
+    #>
+    param(
+        [switch]$Staged
+    )
 
-  # Get the diff output
-  $diffOutput = git diff --staged | Out-String
+    # Get the diff output based on the flag
+    if ($Staged) {
+        $diffOutput = git diff --staged | Out-String
+        $statusMsg = "staged"
+    } else {
+        $diffOutput = git diff | Out-String
+        $statusMsg = "unstaged"
+    }
 
-  # Check if there is actual output to avoid copying an empty prompt
-  if ([string]::IsNullOrWhiteSpace($diffOutput)) {
-    Write-Host "⚠️ No staged changes found. Nothing copied." -ForegroundColor Yellow
-    return
-  }
+    # Check if there is actual output to avoid copying an empty prompt
+    if ([string]::IsNullOrWhiteSpace($diffOutput)) {
+        Write-Host "⚠️ No $statusMsg changes found. Nothing copied." -ForegroundColor Yellow
+        return
+    }
 
-  # Define the prompt template using a verbatim here-string
-  $promptTemplate = @'
-Please review the following staged git changes:
-```
+    # Define the prompt template using a verbatim here-string
+    $promptTemplate = @'
+Please review the following git changes:
+```diff
 {0}
 ```
 
 **Instructions:**
 1. **Analyze Atomicity:** Determine if these changes represent a single logical unit of work or multiple distinct units that should be split.
-2. **If Multiple Commits are needed:**
-   - List the suggested commits.
-   - For each commit, describe exactly which files or logic chunks belong to it.
-   - Provide the commit message for each in a dedicated code block labeled "plaintext".
-3. **If a Single Commit is sufficient:**
-   - Provide the single professional commit message in a code block labeled "plaintext".
+2. **Format Requirements:** For each logical commit (whether single or multiple), you must output the suggested commands and messages using the EXACT structure shown in the example below.
 
-**Constraint:**
-The GUI I use will ONLY display a copy button if the code block language is specified. You must label all commit message blocks as "plaintext".
+**Example Output:**
+Commit one:
+- `src\app\page.tsx`
+- `src\app\[slug]\page.tsx`
+- `src\app\components\*`
+- `src\app\user profile\*`
+This can be staged with the following command:
+```pwsh
+git add src\app\page.tsx src\app*slug*\page.tsx src\app\components\* 'src\app\user profile\*'
+```
+and this is the commit:
+```plaintext
+feat (frontend): Implement user profile routing and layout
+
+- Add dynamic route segment for user profiles
+- Create shared UI components for layout
+- Scaffold initial user settings page
+```
+
+**Constraints:**
+- The `git add` code block MUST be labeled as `pwsh`.
+- Ensure paths with spaces are enclosed in quotes in the `git add` command.
+- Ensure paths with PowerShell wildcard characters (like `[` and `]`) are properly handled in the `pwsh` block (e.g., substituting brackets with `*` as shown in the example).
+- The commit message code block MUST be labeled as `plaintext`.
 '@
 
-  # Inject diff and copy to clipboard
-  ($promptTemplate -f $diffOutput) | Set-Clipboard
+    # Inject diff and copy to clipboard
+    $finalPrompt = $promptTemplate -f $diffOutput
+    $finalPrompt | Set-Clipboard
 
-  # Feedback
-  Write-Host "✅ Smart split-commit prompt copied to clipboard!" -ForegroundColor Green
+    # Feedback
+    Write-Host "✅ Smart split-commit prompt for $statusMsg changes copied to clipboard!" -ForegroundColor Green
 }
 Set-Alias -Name gcommit -Value Get-GCommitPrompt
 
@@ -590,8 +617,6 @@ function dev { git switch develop }
 # Add any project-specific git aliases here
 # Include the project name and a timestamp for easy maintenence
 
-# Typos
-Set-Alias -Name celar -Value Clear-Host
 
 # =========================================================================== #
 #                             FINAL SYSTEM SETUP                              #
