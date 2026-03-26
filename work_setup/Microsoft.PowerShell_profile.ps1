@@ -190,7 +190,7 @@ function Get-GCommitPrompt {
     .SYNOPSIS
     Creates a smart commit prompt (with diffs) and copies it to the clipboard.
     .DESCRIPTION
-    By default, this grabs unstaged changes. Use the -Staged flag to grab staged changes.
+    By default, this grabs unstaged changes and untracked files. Use the -Staged flag to grab staged changes.
     #>
     param(
         [switch]$Staged
@@ -203,6 +203,35 @@ function Get-GCommitPrompt {
     } else {
         $diffOutput = git diff | Out-String
         $statusMsg = "unstaged"
+
+        # Dynamically append untracked files as new diff blocks
+        $untrackedFiles = git ls-files --others --exclude-standard
+        if ($untrackedFiles) {
+            $statusMsg = "unstaged and untracked"
+            
+            $untrackedOutput = foreach ($file in $untrackedFiles) {
+                if (Test-Path -LiteralPath $file -PathType Leaf) {
+                    "diff --git a/$file b/$file"
+                    "new file"
+                    "--- /dev/null"
+                    "+++ b/$file"
+                    
+                    $content = Get-Content -LiteralPath $file -ErrorAction SilentlyContinue
+                    if ($null -ne $content) {
+                        foreach ($line in $content) { "+$line" }
+                    } else {
+                        if ((Get-Item -LiteralPath $file).Length -eq 0) {
+                            "+(empty file)"
+                        } else {
+                            "+(binary or unreadable)"
+                        }
+                    }
+                }
+            }
+            if ($untrackedOutput) {
+                $diffOutput += "`n" + ($untrackedOutput -join "`n")
+            }
+        }
     }
 
     # Check if there is actual output to avoid copying an empty prompt
@@ -249,7 +278,7 @@ feat (frontend): Implement user profile routing and layout
 '@
 
     # Inject diff and copy to clipboard
-    $finalPrompt = $promptTemplate -f $diffOutput
+    $finalPrompt = $promptTemplate -f $diffOutput.Trim()
     $finalPrompt | Set-Clipboard
 
     # Feedback
