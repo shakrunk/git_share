@@ -208,14 +208,14 @@ function Get-GCommitPrompt {
         $untrackedFiles = git ls-files --others --exclude-standard
         if ($untrackedFiles) {
             $statusMsg = "unstaged and untracked"
-            
+
             $untrackedOutput = foreach ($file in $untrackedFiles) {
                 if (Test-Path -LiteralPath $file -PathType Leaf) {
                     "diff --git a/$file b/$file"
                     "new file"
                     "--- /dev/null"
                     "+++ b/$file"
-                    
+
                     $content = Get-Content -LiteralPath $file -ErrorAction SilentlyContinue
                     if ($null -ne $content) {
                         foreach ($line in $content) { "+$line" }
@@ -461,6 +461,35 @@ function Start-AppOnDesktop {
     Write-Warning "Timed out waiting for a window handle for '$ProcessName'."
   }
 }
+
+# ---- Claude Workspace Navigation ----
+$env:CLAUDE_SESSIONS = "$env:LOCALAPPDATA\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\local-agent-mode-sessions"
+
+if (Test-Path $env:CLAUDE_SESSIONS) {
+    New-PSDrive -Name "ClaudeSess" -PSProvider FileSystem -Root $env:CLAUDE_SESSIONS | Out-Null
+}
+
+function Set-ClaudeSession {
+    <#
+    .SYNOPSIS
+      Automatically finds and changes the directory to the most recently modified agent session workspace.
+    #>
+    if (Test-Path $env:CLAUDE_SESSIONS) {
+        $latestSession = Get-ChildItem -Path $env:CLAUDE_SESSIONS -Directory -Depth 2 |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+        if ($latestSession) {
+            Set-Location $latestSession.FullName
+        } else {
+            Set-Location $env:CLAUDE_SESSIONS
+        }
+    } else {
+        Write-Error "Claude session path unavailable or package removed."
+    }
+}
+
+Set-Alias -Name cd-claude -Value Set-ClaudeSession
 
 # =========================================================================== #
 #                                GIT ALIASES                                  #
