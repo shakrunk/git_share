@@ -266,6 +266,21 @@ feat (frontend): Implement user profile routing and layout
 }
 Set-Alias -Name gcommit -Value Get-GCommitPrompt
 
+
+# =========================================================================== #
+#                         CLAUDE MANAGEMENT                                   #
+# =========================================================================== #
+
+function claude-reg {
+    Remove-Item Env:\CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+    claude $args
+}
+
+function claude-alt {
+    $env:CLAUDE_CONFIG_DIR = "$HOME\.claude-alt"
+    claude $args
+}
+
 # =========================================================================== #
 #                         KANATA MANAGEMENT                                   #
 # =========================================================================== #
