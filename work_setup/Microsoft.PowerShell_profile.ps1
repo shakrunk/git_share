@@ -165,304 +165,9 @@ function Assert-Confirmation {
   return $false
 }
 
-# Setup my workspace
-function start-work {
-  # Navigate to the iip repo
-  cd iip
-
-  # Setup `Comms`
-  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "olk" # Outlook
-  Start-AppOnDesktop -DesktopName "Comms Desktop" -App "ms-teams" -ProcessName "ms-teams" # Teams
-
-  # Setup `Main Work`
-  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zen" -ProcessName "zen"# Browser
-  Start-AppOnDesktop -DesktopName "Main Work Desktop" -App "zed" -Args "." -ProcessName "Zed" # Editor
-}
-
-# Start the production api (server run only)
-function start-api {
-  Set-Location C:\GitRepos\rmleb-iip\backend;
-  poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8;
-}
-
-function Get-GCommitPrompt {
-    <#
-    .SYNOPSIS
-    Creates a smart commit prompt (with diffs) and copies it to the clipboard.
-    .DESCRIPTION
-    By default, this grabs unstaged changes and untracked files. Use the -Staged flag to grab staged changes.
-    #>
-    param(
-        [switch]$Staged
-    )
-
-    # Get the diff output based on the flag
-    if ($Staged) {
-        $diffOutput = git diff --staged | Out-String
-        $statusMsg = "staged"
-    } else {
-        $diffOutput = git diff | Out-String
-        $statusMsg = "unstaged"
-
-        # Dynamically append untracked files as new diff blocks
-        $untrackedFiles = git ls-files --others --exclude-standard
-        if ($untrackedFiles) {
-            $statusMsg = "unstaged and untracked"
-
-            $untrackedOutput = foreach ($file in $untrackedFiles) {
-                if (Test-Path -LiteralPath $file -PathType Leaf) {
-                    "diff --git a/$file b/$file"
-                    "new file"
-                    "--- /dev/null"
-                    "+++ b/$file"
-
-                    $content = Get-Content -LiteralPath $file -ErrorAction SilentlyContinue
-                    if ($null -ne $content) {
-                        foreach ($line in $content) { "+$line" }
-                    } else {
-                        if ((Get-Item -LiteralPath $file).Length -eq 0) {
-                            "+(empty file)"
-                        } else {
-                            "+(binary or unreadable)"
-                        }
-                    }
-                }
-            }
-            if ($untrackedOutput) {
-                $diffOutput += "`n" + ($untrackedOutput -join "`n")
-            }
-        }
-    }
-
-    # Check if there is actual output to avoid copying an empty prompt
-    if ([string]::IsNullOrWhiteSpace($diffOutput)) {
-        Write-Host "⚠️ No $statusMsg changes found. Nothing copied." -ForegroundColor Yellow
-        return
-    }
-
-    # Define the prompt template using a verbatim here-string
-    $promptTemplate = @'
-Please review the following git changes:
-```diff
-{0}
-```
-
-**Instructions:**
-1. **Analyze Atomicity:** Determine if these changes represent a single logical unit of work or multiple distinct units that should be split.
-2. **Format Requirements:** For each logical commit (whether single or multiple), you must output the suggested commands and messages using the EXACT structure shown in the example below.
-
-**Example Output:**
-Commit one:
-- `src\app\page.tsx`
-- `src\app\[slug]\page.tsx`
-- `src\app\components\*`
-- `src\app\user profile\*`
-This can be staged with the following command:
-```pwsh
-git add src\app\page.tsx src\app*slug*\page.tsx src\app\components\* 'src\app\user profile\*'
-```
-and this is the commit:
-```plaintext
-feat (frontend): Implement user profile routing and layout
-
-- Add dynamic route segment for user profiles
-- Create shared UI components for layout
-- Scaffold initial user settings page
-```
-
-**Constraints:**
-- The `git add` code block MUST be labeled as `pwsh`.
-- Ensure paths with spaces are enclosed in quotes in the `git add` command.
-- Ensure paths with PowerShell wildcard characters (like `[` and `]`) are properly handled in the `pwsh` block (e.g., substituting brackets with `*` as shown in the example).
-- The commit message code block MUST be labeled as `plaintext`.
-'@
-
-    # Inject diff and copy to clipboard
-    $finalPrompt = $promptTemplate -f $diffOutput.Trim()
-    $finalPrompt | Set-Clipboard
-
-    # Feedback
-    Write-Host "✅ Smart split-commit prompt for $statusMsg changes copied to clipboard!" -ForegroundColor Green
-}
-Set-Alias -Name gcommit -Value Get-GCommitPrompt
-
-
-function Get-WeeklyReportPromptV3 {
-  #
-  # Creates a full weekly report prompt (with commits) and copies it to the clipboard.
-  # This version uses a verbatim here-string to avoid all character escaping issues.
-  #
-  param(
-    [int]$Days = 7,
-    [switch]$IncludeDiffs
-  )
-
-  $since = "$Days days ago"
-
-  # --- CONSTANTS ---
-  $projectContext = @"
-The Rocky Mountain Lions Eye Bank Internal Information Portal (RMLEB IIP) is a data visualization and analytics platform.
-It eliminates external data transfers to 3rd-party BI tools, enabling evidence-based decision-making.
-Key Modules:
-1. Community/Professional Relations (CPR) Dashboard: Insights for hospital presentations.
-2. Donor Recovery Center (DRC) Dashboard: Real-time performance feedback for technicians.
-"@
-
-  # --- GIT DATA COLLECTION ---
-  $gitLogOutput = git log --all --since=$since --no-merges `
-    --pretty=format:"### Commit %h by %an (%ar)%n**Subject:** %s%n**Description:** %b%n**Changes:**" `
-    --stat=120 | Out-String
-
-  if (-not $gitLogOutput) {
-    Write-Host "⚠️  No commits found in the specified timeframe" -ForegroundColor Yellow
-    return
-  }
-
-  $fileImpact = git log --all --since=$since --no-merges `
-    --pretty=format: --numstat | Out-String
-
-  $commitCount = (git rev-list --all --since=$since --no-merges --count)
-  $authorCount = (git log --all --since=$since --no-merges --format='%an' | Sort-Object -Unique | Measure-Object).Count
-  $filesChangedCount = (git log --all --since=$since --no-merges --name-only --pretty=format: | Sort-Object -Unique | Where-Object { $_ }).Count
-
-  # --- PROMPT CONSTRUCTION ---
-  $promptTemplate = @"
-You are an expert Technical Product Manager and Full-Stack Developer.
-Your goal is to generate a standalone HTML Status Report for the **RMLEB IIP** project.
-
-**=== PROJECT CONTEXT ===**
-$projectContext
-
-**=== SUMMARY STATISTICS ===**
-- Time Period: Past $Days days
-- Total Commits: $commitCount
-- Contributors: $authorCount
-- Files Modified: $filesChangedCount
-
-**=== DETAILED COMMIT HISTORY ===**
-$gitLogOutput
-
-**=== FILE CHANGE IMPACT ===**
-$fileImpact
-
-**=== INSTRUCTIONS ===**
-
-**STEP 1: ANALYZE (Internal Mental Sandbox)**
-Do not output this step. Read the git logs to construct the narrative.
-* **Identify Major Features:** Look for heavy edits in core files.
-* **Contextualize:** Translate technical changes into business value for RMLEB stakeholders (CPR and DRC teams).
-
-**STEP 2: GENERATE THE WEBSITE**
-Create a single-file, production-ready HTML document.
-
-**Content Strategy:**
-1.  **Executive Summary:** High-level overview of value delivered this week.
-2.  **Key Highlights:** Bullet points of features/fixes.
-3.  **Technical Deep Dive:** Granular details grouped by feature.
-4.  **Impact Analysis:** Which departments (CPR vs. DRC) are affected.
-
-**Technical Constraints & UI Requirements:**
-* **Single File:** Embed all CSS/JS.
-* **Styling:** Professional corporate aesthetic (Blues/Grays).
-*
-
-* **Responsive:** Must work on Desktop, Tablet, and Mobile.
-* **Navigation:** * Include a **Sticky Table of Contents** on the side or top.
-    * Include placeholder **"Previous Report"** and **"Next Report"** buttons at the bottom.
-* **Interactivity:** Search bar for commits; Collapsible details; Smooth scrolling.
-
-**PRINT-READY REQUIREMENT (CRITICAL):**
-You must include a robust \`@media print\` CSS block.
-When the user prints this page (Ctrl+P):
-1.  **Hide UI Elements:** The Sticky TOC, Search bars, Navigation buttons, and "Show/Hide" toggles must disappear.
-2.  **Auto-Expand:** All collapsible sections (details/summary) must be expanded by default so the full text is visible on paper.
-3.  **Typography:** Ensure high contrast (black text on white background) and remove any scrollbars.
-4.  **Layout:** The printed version should look like a formal memo or Word document.
-
-**OUTPUT FORMAT:**
-Provide ONLY the HTML code block.
-"@
-
-  $promptTemplate | Set-Clipboard
-  Write-Host "✅ Enhanced RMLEB report prompt (V3 - Web & Print Optimized) copied!" -ForegroundColor Green
-}
-Set-Alias -Name report -Value Get-WeeklyReportPromptV3
-
-# Helper function to Launch -> Wait -> Move
-function Start-AppOnDesktop {
-  param (
-    [string]$App,         # The command to run (e.g. "zed")
-    [string]$Args = $null,
-    [string]$DesktopName,
-    [string]$ProcessName  # Mandatory for multi-process apps (e.g. "zen", "ms-teams", etc.)
-  )
-
-  # Check if module is loaded; if not, try to find and import it
-  if (-not (Get-Module -Name VirtualDesktop)) {
-    if (Get-Module -ListAvailable -Name VirtualDesktop) {
-      Import-Module VirtualDesktop
-    } else {
-      Write-Warning "VirtualDesktop module not found. Launching $App on current desktop."
-      Start-Process $App -ArgumentList $Args
-      return
-    }
-  }
-
-  # Get the desktop index from the list by name
-  $desktopInfo = Get-DesktopList | Where-Object { $_.Name -match $DesktopName } | Select-Object -First 1
-
-  if ($null -eq $desktopInfo) {
-    Write-Warning "Desktop '$DesktopName' not found. Launching on current desktop."
-    Start-Process $App -ArgumentList $Args
-    return
-  }
-
-  # Getthe target desktop object using the index
-  $targetDesktop = Get-Desktop -Index $desktopInfo.Number
-
-  # Capture start time and lanuch (going back 2s to account for clock skews/fast launching)
-  $startTime = (Get-Date).AddSeconds(-2)
-
-  # Start the process and pass the object through
-  Start-Process $App -ArgumentList $Args -PassThru
-
-  # Hunt for the windaw handle
-  $timeout = 0
-  $targetHandle = 0
-
-  # If no ProcessName provided, assume the App name might be the process name (fallback)
-  if ([string]::IsNullOrEmpty($ProcessName)) { $ProcessName = $App }
-
-  Write-Host "Waiting for process '$ProcessName' to spawn a window..." -NoNewline
-
-  while ($targetHandle -eq 0 -and $timeout -lt 20) {
-    # Find candidates (same name, started recently, has a window)
-    $candidates = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
-      Where-Object { $_.StartTime -ge $startTime -and $_.MainWindowHandle -ne 0 }
-
-    # Grab the first one that qualifies
-    if ($candidates) {
-      # On the rare chance that multiple windows appeared this fast, pick the first
-      $p = $candidates | Select-Object -First 1
-      $targetHandle = $p.MainWindowHandle
-      break
-    }
-
-    Start-Sleep -Milliseconds 500
-    Write-Host "." -NoNewline
-    $timeout++
-  }
-  Write-Host "" # (New line)
-
-  # Move the window if we found a handle
-  if ($targetHandle -ne 0) {
-    $targetHandle | Move-Window $targetDesktop
-  } else {
-    Write-Warning "Timed out waiting for a window handle for '$ProcessName'."
-  }
-}
-
-# ---- Claude Workspace Navigation ----
+# =========================================================================== #
+#                         CLAUDE MANAGEMENT                                   #
+# =========================================================================== #
 $env:CLAUDE_SESSIONS = "$env:LOCALAPPDATA\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\local-agent-mode-sessions"
 
 if (Test-Path $env:CLAUDE_SESSIONS) {
@@ -501,10 +206,45 @@ Set-Alias -Name cd-claude -Value Set-ClaudeSession
 
 function Show-GitStatus {
   # Renamed from Get-GitStatus to avoid conflict with posh-git
-  # Wrapper for 'git status'
+  # Wrapper for 'git status'. Defaults to short+branch format (-sb), which
+  # keeps color (unlike --porcelain) while staying compact.
   [CmdletBinding()]
   param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-  git status @GitArgs
+  if ($GitArgs) {
+    git status @GitArgs
+  } else {
+    git status -sb
+  }
+}
+
+function Show-GitBranch {
+  # Wrapper for 'git branch'. Defaults to --list (local branches).
+  # Use -D <name> to delete a local branch, e.g. `branch -D old-feature`.
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  if ($GitArgs) {
+    git branch @GitArgs
+  } else {
+    git branch --list
+  }
+}
+
+function Show-GitLog {
+  # Wrapper for 'git log'. Defaults to a compact decorated graph view.
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  if ($GitArgs) {
+    git log @GitArgs
+  } else {
+    git log --oneline --graph --decorate -20
+  }
+}
+
+function Show-GitDiff {
+  # Wrapper for 'git diff'
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  git diff @GitArgs
 }
 
 function Switch-GitBranch {
@@ -717,6 +457,9 @@ function Update-GitWip {
 # ------------------------------------------
 
 Set-Alias -Name status  -Value Show-GitStatus
+Set-Alias -Name branch  -Value Show-GitBranch
+Set-Alias -Name log     -Value Show-GitLog
+Set-Alias -Name diff    -Value Show-GitDiff -Force # -Force needed: overrides built-in read-only 'diff' -> Compare-Object
 Set-Alias -Name switchb -Value Switch-GitBranch
 Set-Alias -Name merge   -Value Merge-GitBranch
 Set-Alias -Name push    -Value Push-GitBranch
@@ -753,7 +496,7 @@ $GitCompleter = {
 }
 
 # Apply to relevant commands
-Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push' -ScriptBlock $GitCompleter
+Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push', 'Show-GitBranch', 'branch', 'Show-GitLog', 'log', 'Show-GitDiff', 'diff' -ScriptBlock $GitCompleter
 
 # ------------------------------------------
 # PART IV: Convenience Commands

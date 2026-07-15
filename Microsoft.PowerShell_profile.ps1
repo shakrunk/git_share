@@ -165,108 +165,6 @@ function Assert-Confirmation {
   return $false
 }
 
-function Get-GCommitPrompt {
-    <#
-    .SYNOPSIS
-    Creates a smart commit prompt (with diffs) and copies it to the clipboard.
-    .DESCRIPTION
-    By default, this grabs unstaged changes and untracked files. Use the -Staged flag to grab staged changes.
-    #>
-    param(
-        [switch]$Staged
-    )
-
-    # Get the diff output based on the flag
-    if ($Staged) {
-        $diffOutput = git diff --staged | Out-String
-        $statusMsg = "staged"
-    } else {
-        $diffOutput = git diff | Out-String
-        $statusMsg = "unstaged"
-
-        # Dynamically append untracked files as new diff blocks
-        $untrackedFiles = git ls-files --others --exclude-standard
-        if ($untrackedFiles) {
-            $statusMsg = "unstaged and untracked"
-
-            $untrackedOutput = foreach ($file in $untrackedFiles) {
-                if (Test-Path -LiteralPath $file -PathType Leaf) {
-                    "diff --git a/$file b/$file"
-                    "new file"
-                    "--- /dev/null"
-                    "+++ b/$file"
-
-                    $content = Get-Content -LiteralPath $file -ErrorAction SilentlyContinue
-                    if ($null -ne $content) {
-                        foreach ($line in $content) { "+$line" }
-                    } else {
-                        if ((Get-Item -LiteralPath $file).Length -eq 0) {
-                            "+(empty file)"
-                        } else {
-                            "+(binary or unreadable)"
-                        }
-                    }
-                }
-            }
-            if ($untrackedOutput) {
-                $diffOutput += "`n" + ($untrackedOutput -join "`n")
-            }
-        }
-    }
-
-    # Check if there is actual output to avoid copying an empty prompt
-    if ([string]::IsNullOrWhiteSpace($diffOutput)) {
-        Write-Host "⚠️ No $statusMsg changes found. Nothing copied." -ForegroundColor Yellow
-        return
-    }
-
-    # Define the prompt template using a verbatim here-string
-    $promptTemplate = @'
-Please review the following git changes:
-```diff
-{0}
-```
-
-**Instructions:**
-1. **Analyze Atomicity:** Determine if these changes represent a single logical unit of work or multiple distinct units that should be split.
-2. **Format Requirements:** For each logical commit (whether single or multiple), you must output the suggested commands and messages using the EXACT structure shown in the example below.
-
-**Example Output:**
-Commit one:
-- `src\app\page.tsx`
-- `src\app\[slug]\page.tsx`
-- `src\app\components\*`
-- `src\app\user profile\*`
-This can be staged with the following command:
-```pwsh
-git add src\app\page.tsx src\app*slug*\page.tsx src\app\components\* 'src\app\user profile\*'
-```
-and this is the commit:
-```plaintext
-feat (frontend): Implement user profile routing and layout
-
-- Add dynamic route segment for user profiles
-- Create shared UI components for layout
-- Scaffold initial user settings page
-```
-
-**Constraints:**
-- The `git add` code block MUST be labeled as `pwsh`.
-- Ensure paths with spaces are enclosed in quotes in the `git add` command.
-- Ensure paths with PowerShell wildcard characters (like `[` and `]`) are properly handled in the `pwsh` block (e.g., substituting brackets with `*` as shown in the example).
-- The commit message code block MUST be labeled as `plaintext`.
-'@
-
-    # Inject diff and copy to clipboard
-    $finalPrompt = $promptTemplate -f $diffOutput.Trim()
-    $finalPrompt | Set-Clipboard
-
-    # Feedback
-    Write-Host "✅ Smart split-commit prompt for $statusMsg changes copied to clipboard!" -ForegroundColor Green
-}
-Set-Alias -Name gcommit -Value Get-GCommitPrompt
-
-
 # =========================================================================== #
 #                         CLAUDE MANAGEMENT                                   #
 # =========================================================================== #
@@ -395,10 +293,45 @@ Set-Alias -Name kstart -Value Restart-Kanata
 
 function Show-GitStatus {
   # Renamed from Get-GitStatus to avoid conflict with posh-git
-  # Wrapper for 'git status'
+  # Wrapper for 'git status'. Defaults to short+branch format (-sb), which
+  # keeps color (unlike --porcelain) while staying compact.
   [CmdletBinding()]
   param([Parameter(ValueFromRemainingArguments)]$GitArgs)
-  git status @GitArgs
+  if ($GitArgs) {
+    git status @GitArgs
+  } else {
+    git status -sb
+  }
+}
+
+function Show-GitBranch {
+  # Wrapper for 'git branch'. Defaults to --list (local branches).
+  # Use -D <name> to delete a local branch, e.g. `branch -D old-feature`.
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  if ($GitArgs) {
+    git branch @GitArgs
+  } else {
+    git branch --list
+  }
+}
+
+function Show-GitLog {
+  # Wrapper for 'git log'. Defaults to a compact decorated graph view.
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  if ($GitArgs) {
+    git log @GitArgs
+  } else {
+    git log --oneline --graph --decorate -20
+  }
+}
+
+function Show-GitDiff {
+  # Wrapper for 'git diff'
+  [CmdletBinding()]
+  param([Parameter(ValueFromRemainingArguments)]$GitArgs)
+  git diff @GitArgs
 }
 
 function Switch-GitBranch {
@@ -611,6 +544,9 @@ function Update-GitWip {
 # ------------------------------------------
 
 Set-Alias -Name status  -Value Show-GitStatus
+Set-Alias -Name branch  -Value Show-GitBranch
+Set-Alias -Name log     -Value Show-GitLog
+Set-Alias -Name diff    -Value Show-GitDiff -Force # -Force needed: overrides built-in read-only 'diff' -> Compare-Object
 Set-Alias -Name switchb -Value Switch-GitBranch
 Set-Alias -Name merge   -Value Merge-GitBranch
 Set-Alias -Name push    -Value Push-GitBranch
@@ -647,7 +583,7 @@ $GitCompleter = {
 }
 
 # Apply to relevant commands
-Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push' -ScriptBlock $GitCompleter
+Register-ArgumentCompleter -CommandName 'Switch-GitBranch', 'switchb', 'Merge-GitBranch', 'merge', 'Push-GitBranch', 'push', 'Show-GitBranch', 'branch', 'Show-GitLog', 'log', 'Show-GitDiff', 'diff' -ScriptBlock $GitCompleter
 
 # ------------------------------------------
 # PART IV: Convenience Commands
